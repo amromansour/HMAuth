@@ -20,9 +20,6 @@ namespace AuthApi.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
-
-
-
             var response = await _userService.Login(model);
             if (response.IsOk)
             {
@@ -31,6 +28,23 @@ namespace AuthApi.Controllers
             else
             {
                 return Ok(new ApiResponse() { _ResponseCode = response._ResponseCode, Message = response.Message });
+            }
+        }
+
+
+        [HttpPost("RefreshAuth")]
+        public async Task<IActionResult> RefreshAuth([FromBody] RefreshTokenDto model)
+        {
+            if (string.IsNullOrEmpty(model.Token))
+                return BadRequest(new ApiResponse() { _ResponseCode = Services.Enums.ResponseCode.BadRequest, Message = "Invalid token" });
+
+
+            var response = await _userService.ValidateRefreshToken(model.Token);
+            if (response.IsOk)
+            {
+                return Ok(new ApiResponse() { Data = response.Data, Message = "Token is valid" });
+            }
+            else { return BadRequest(new ApiResponse() { _ResponseCode = response._ResponseCode, Message = response.Message }); 
             }
         }
     }
