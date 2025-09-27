@@ -55,6 +55,8 @@ namespace AuthApi.Db
             });
         }
 
+
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
     }
     
 }

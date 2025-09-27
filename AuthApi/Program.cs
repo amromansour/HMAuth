@@ -33,9 +33,11 @@ namespace AuthApi
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(options =>
             {
+                options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -60,7 +62,7 @@ namespace AuthApi
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth API", Version = "v1" });
 
-                // إضافة دعم JWT في Swagger
+                //  JWT in Swagger
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
