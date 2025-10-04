@@ -95,8 +95,7 @@ namespace AuthApi
             builder.Services.AddScoped<IUserService, UserServices>();
             builder.Services.AddScoped<IRoleServices, RoleServices>();
 
-
-
+          
             var app = builder.Build();
 
 
@@ -112,13 +111,22 @@ namespace AuthApi
 
             // Middleware
             app.UseHttpsRedirection();
+
+            // 🟢 خدمة Angular في production
+            app.UseDefaultFiles();    // يدور على index.html تلقائي
+            app.UseStaticFiles();   
+
+
             // Map API Controllers
             app.MapControllers();
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
 
-          
+
+        
+
+            app.MapFallbackToFile("index.html");
 
             app.Run();
         }

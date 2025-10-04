@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace AuthApi.Services
@@ -113,7 +114,7 @@ namespace AuthApi.Services
                 AccessToken = token,
                 RefreshToken = refreshToken,
                 UserName = user.UserName,
-                ExpiresIn = _jwtSettings["DurationInMinutes"] != null ? Convert.ToInt32(_jwtSettings["DurationInMinutes"]) : 0
+                ExpiresInMin = _jwtSettings["DurationInMinutes"] != null ? Convert.ToInt32(_jwtSettings["DurationInMinutes"]) : 0
             };
             return new SrvResponse().Success(_LoginResponse);
         }
@@ -182,7 +183,7 @@ namespace AuthApi.Services
                     AccessToken = Newtoken,
                     RefreshToken = NewRefreshToken,
                     UserName = user.UserName,
-                    ExpiresIn = _jwtSettings["DurationInMinutes"] != null ? Convert.ToInt32(_jwtSettings["DurationInMinutes"]) : 0
+                    ExpiresInMin = _jwtSettings["DurationInMinutes"] != null ? Convert.ToInt32(_jwtSettings["DurationInMinutes"]) : 0
                 };
                 return new SrvResponse().Success(_LoginResponse);
 
@@ -199,6 +200,181 @@ namespace AuthApi.Services
 
 
 
+        public async Task<SrvResponse> ForgetPasswordReq(ForgetPasswordReqDto model)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null)
+                    return new SrvResponse().Error(Enums.ResponseCode.NotFound, "No user associated with this email");
+
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+                // Generate OTP
+                var otpResponse = await GenerateOtPForUser(user.Id);
+                if (!otpResponse.IsOk)
+                {
+                    return new SrvResponse().Error(otpResponse._ResponseCode, otpResponse.Message);
+                }
+
+                // Here we can send the OTP to the user's email using your preferred email service.
+                // SendEmail(user.Email, "Your OTP Code", $"Your OTP code is: {otpResponse.Data}");
+
+                // For demonstration purposes, we'll just return the OTP in the response.
+
+                ForgetPasswordResponse forgetPasswordResponse = new ForgetPasswordResponse
+                {
+                    OTP = otpResponse.Data as string,
+                    resetToken = resetToken
+                };
+                return new SrvResponse().Success(forgetPasswordResponse);
+            }
+            catch (Exception ex)
+            {
+                var Rx_Message = ex.Message;
+                if (ex.InnerException != null) Rx_Message += " | " + ex.InnerException.Message;
+                return new SrvResponse().Error(Rx_Message);
+            }
+        }
+
+
+
+        public async Task<SrvResponse> SetNewPassword(SetNewPasswordOtp model)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null)
+                    return new SrvResponse().Error(Enums.ResponseCode.NotFound, "No user associated with this email");
+
+                // Validate OTP
+                var otpValidationResponse = await ValidateOtpForUser(user.Id, model.Otp);
+                if (!otpValidationResponse.IsOk)
+                {
+                    return new SrvResponse().Error(otpValidationResponse._ResponseCode, otpValidationResponse.Message);
+                }
+
+                // Reset Password
+              
+                var resetResult = await _userManager.ResetPasswordAsync(user, model.resetToken, model.NewPassword);
+                if (!resetResult.Succeeded)
+                {
+                    var errors = string.Join(", ", resetResult.Errors.Select(e => e.Description));
+                    return new SrvResponse().Error(errors);
+                }
+
+                await transaction.CommitAsync();
+                return new SrvResponse().Success("Password has been reset successfully.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                var Rx_Message = ex.Message;
+                if (ex.InnerException != null) Rx_Message += " | " + ex.InnerException.Message;
+                return new SrvResponse().Error(Rx_Message);
+            }
+
+        }
+
+        public async Task<SrvResponse> GenerateOtPForUser(string userId)
+        {
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+               
+              
+                var otp = GenerateNumericOtp(6);           
+                var salt = CreateSalt();
+                var otpHash = HashOtp(otp, salt);
+
+                // Set OTP expiration time (e.g., 5 minutes from now)
+                var expirationTime = DateTime.UtcNow.AddMinutes(5);
+
+                // Save OTP to the database
+                var userOtp = new UserOTP
+                {
+                    UserId = userId,
+                    OTPHash = otpHash,
+                    Salt = salt,
+                    ExpirationTime = expirationTime,
+                    IsUsed = false
+                };
+
+
+                //check if there is an existing OTP for this user that is not used and not expired
+                var existingOtp =
+                    _context.UserOTPs.FirstOrDefault(o =>
+                    o.UserId == userId && !o.IsUsed && o.ExpirationTime > DateTime.UtcNow);
+
+                if (existingOtp != null)
+                {
+                    existingOtp.IsUsed = true; // Mark the existing OTP as used
+                    _context.UserOTPs.Update(existingOtp);
+                }
+
+                _context.UserOTPs.Add(userOtp);
+                _context.SaveChanges();
+                await transaction.CommitAsync();
+
+                return new SrvResponse().Success(otp);
+
+                
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                var Rx_Message = ex.Message;
+                if (ex.InnerException != null) Rx_Message += " | " + ex.InnerException.Message;
+                return new SrvResponse().Error(Rx_Message);
+            }
+        }
+
+        public async Task<SrvResponse> ValidateOtpForUser(string userId, string otp)
+        {
+            try
+            {
+
+                // Retrieve the OTP record from the database
+                var userOtp = _context.UserOTPs
+                    .Where(o => o.UserId == userId && !o.IsUsed && o.ExpirationTime > DateTime.UtcNow)
+                    .OrderByDescending(o => o.ExpirationTime) // Get the most recent OTP
+                    .FirstOrDefault();
+
+                if (userOtp == null)
+                {
+                    return new SrvResponse().Error(Enums.ResponseCode.Unauthorized, "No valid OTP found or OTP has expired.");
+                }
+
+                // Hash the provided OTP with the stored salt
+                var hashedInputOtp = HashOtp(otp, userOtp.Salt);
+
+                // Compare the hashed input OTP with the stored OTP hash
+                if (hashedInputOtp == userOtp.OTPHash)
+                {
+                    // Set the OTP as used
+                    userOtp.IsUsed = true;
+                    _context.UserOTPs.Update(userOtp);
+                    await _context.SaveChangesAsync();
+                    return new SrvResponse().Success();
+                }
+                else
+                {
+                    return new SrvResponse().Error(Enums.ResponseCode.Unauthorized, "Invalid OTP.");
+                }
+            }
+            catch (Exception ex)
+            {
+                var Rx_Message = ex.Message;
+                if (ex.InnerException != null) Rx_Message += " | " + ex.InnerException.Message;
+                return new SrvResponse().Error(Rx_Message);
+            }
+        }
 
 
         private string GenerateJwtToken(AppUser user, IList<string> roles)
@@ -247,7 +423,31 @@ namespace AuthApi.Services
 
         }
 
+        private string GenerateNumericOtp(int digits = 6)
+        {
+            var rng = RandomNumberGenerator.Create();
+            byte[] bytes = new byte[4];
+            rng.GetBytes(bytes);
+            uint value = BitConverter.ToUInt32(bytes, 0) % (uint)Math.Pow(10, digits);
+            return value.ToString($"D{digits}");
+        }
 
+        private string HashOtp(string otp, string salt)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(otp + salt);
+            var hash = sha256.ComputeHash(bytes);
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+
+        private string CreateSalt(int len = 16)
+        {
+            var bytes = new byte[len];
+            RandomNumberGenerator.Fill(bytes);
+            return Convert.ToHexString(bytes).ToLower();
+        }
+
+       
 
     }
 }

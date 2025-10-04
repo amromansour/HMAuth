@@ -4,6 +4,7 @@ using AuthApi.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthApi.Migrations
 {
     [DbContext(typeof(AuthApiDbContext))]
-    partial class AuthApiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251004071451_addOtp")]
+    partial class addOtp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -156,15 +159,10 @@ namespace AuthApi.Migrations
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("OTPHash")
+                    b.Property<string>("OTP")
                         .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
-
-                    b.Property<string>("Salt")
-                        .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
 
                     b.Property<string>("UserId")
                         .IsRequired()

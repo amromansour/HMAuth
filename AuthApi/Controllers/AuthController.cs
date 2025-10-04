@@ -47,5 +47,35 @@ namespace AuthApi.Controllers
             else { return BadRequest(new ApiResponse() { _ResponseCode = response._ResponseCode, Message = response.Message }); 
             }
         }
+
+        [HttpPost("ForgetPasswordReq")]
+        public async Task<IActionResult> ForgetPasswordReq([FromBody] ForgetPasswordReqDto model)
+        {
+            var response = await _userService.ForgetPasswordReq(model);
+            if (response.IsOk)
+            {
+                return Ok(new ApiResponse() { Data = response.Data , Message = "OTP has been sent to your email (for demo purposes, OTP is returned in response)." });
+            }
+            else
+            {
+                return BadRequest(new ApiResponse() { _ResponseCode = response._ResponseCode, Message = response.Message });
+            }
+        }
+
+        [HttpPost("SetNewPassword")]
+        public async Task<IActionResult> SetNewPassword([FromBody] SetNewPasswordOtp model)
+        {
+            var response = await _userService.SetNewPassword(model);
+            if (response.IsOk)
+            {
+                return Ok(new ApiResponse() { Data = response.Data, Message = response.Message });
+            }
+            else
+            {
+                return BadRequest(new ApiResponse() { _ResponseCode = response._ResponseCode, Message = response.Message });
+            }
+        }
+
+
     }
 }

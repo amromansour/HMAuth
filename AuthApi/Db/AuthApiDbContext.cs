@@ -57,6 +57,7 @@ namespace AuthApi.Db
 
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<UserOTP> UserOTPs { get; set; }
     }
     
 }
