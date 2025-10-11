@@ -1,11 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpClientModule } from '@angular/common/http';
+import { Header } from "./Components/header/header";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HttpClientModule],
+  imports: [RouterOutlet, HttpClientModule, Header],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -15,9 +17,9 @@ export class App {
   _httpclint = inject(HttpClient);
 
   ngOnInit(): void {
-    this._httpclint.get('/api/Roles/GetAllRoles').subscribe(data => {
-      console.log(data);
-    });
+    // this._httpclint.get('/api/Roles/GetAllRoles').subscribe(data => {
+    //   console.log(data);
+    // });
   }
 
 }

@@ -10,5 +10,9 @@ namespace AuthApi.Services.Contracts
 
         Task<SrvResponse> ForgetPasswordReq(ForgetPasswordReqDto forgetPasswordReqDto);
         Task<SrvResponse> SetNewPassword(SetNewPasswordOtp setNewPasswordOtp);
+
+        Task<SrvResponse> GetAllUsers(int pageIndex, int pagesize);
+        Task<SrvResponse> GetUserData(string Id);
+
     }
 }

@@ -1,0 +1,21 @@
+.hero {
+  background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  padding-top: 100px;
+  padding-bottom: 100px;
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #6a11cb;
+}
+
+.cta {
+  background-color: #f8f9fa;
+}
+
+.app-screenshot {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+}

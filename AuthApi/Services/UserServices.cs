@@ -20,19 +20,68 @@ namespace AuthApi.Services
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly IConfiguration _configuration;
-        private  AuthApiDbContext _context;
+        private AuthApiDbContext _context;
         private IConfigurationSection _jwtSettings;
+        private readonly IServiceProvider _serviceProvider;
 
         public UserServices()
         {
         }
-        public UserServices(UserManager<AppUser> userManager, IConfiguration configuration, AuthApiDbContext context)
+        public UserServices(UserManager<AppUser> userManager, IConfiguration configuration, AuthApiDbContext context, IServiceProvider serviceProvider)
         {
             _userManager = userManager;
             _configuration = configuration;
             _context = context;
             _jwtSettings = _configuration.GetSection("JwtSettings");
+            _serviceProvider = serviceProvider;
         }
+
+        public async Task<SrvResponse> GetUserData(string Id)
+        {
+            var user = await _userManager.FindByIdAsync(Id);
+            if (user == null)
+                return new SrvResponse().Error(Enums.ResponseCode.NotFound, "User Not Found");
+            var roles = await _userManager.GetRolesAsync(user);
+            UserDto userDto = new UserDto
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                UserName = user.UserName,
+                Email = user.Email,
+                Roles = roles
+            };
+            return new SrvResponse().Success(userDto);
+        }
+        public async Task<SrvResponse> GetAllUsers(int pageIndex, int pageSize)
+        {
+
+            var usersQuery = _userManager.Users
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var users = new List<UserDto>();
+
+            foreach (var u in usersQuery)
+            {
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+                    var roles = await userManager.GetRolesAsync(u);
+                    users.Add(new UserDto
+                    {
+                        Id = u.Id,
+                        FullName = u.FullName,
+                        UserName = u.UserName,
+                        Email = u.Email,
+                        Roles = roles
+                    });
+                }
+            }
+
+            return new SrvResponse().Success(users, _context.Users.Count());
+        }
+
 
         public async Task<SrvResponse> UserRegestration(RegisterDto registerDto)
         {
@@ -105,7 +154,7 @@ namespace AuthApi.Services
             {
 
             }
-            
+
 
             #endregion
 
@@ -163,7 +212,7 @@ namespace AuthApi.Services
                 // Refresh Token Generation
                 var NewRefreshToken = GenerateRefreshToken(user.Id);
 
-             
+
 
                 var RefreshTokenDurationInMinutes = Convert.ToDouble(_jwtSettings["RefreshTokenDurationInMinutes"]);
                 RefreshToken refreshTokenItem = new RefreshToken
@@ -197,8 +246,6 @@ namespace AuthApi.Services
                 return new SrvResponse().Error(Rx_Message);
             }
         }
-
-
 
         public async Task<SrvResponse> ForgetPasswordReq(ForgetPasswordReqDto model)
         {
@@ -237,8 +284,6 @@ namespace AuthApi.Services
             }
         }
 
-
-
         public async Task<SrvResponse> SetNewPassword(SetNewPasswordOtp model)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -257,7 +302,7 @@ namespace AuthApi.Services
                 }
 
                 // Reset Password
-              
+
                 var resetResult = await _userManager.ResetPasswordAsync(user, model.resetToken, model.NewPassword);
                 if (!resetResult.Succeeded)
                 {
@@ -286,9 +331,9 @@ namespace AuthApi.Services
 
             try
             {
-               
-              
-                var otp = GenerateNumericOtp(6);           
+
+
+                var otp = GenerateNumericOtp(6);
                 var salt = CreateSalt();
                 var otpHash = HashOtp(otp, salt);
 
@@ -323,7 +368,7 @@ namespace AuthApi.Services
 
                 return new SrvResponse().Success(otp);
 
-                
+
             }
             catch (Exception ex)
             {
@@ -384,9 +429,10 @@ namespace AuthApi.Services
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>{
+                new Claim(JwtRegisteredClaimNames.Name,user.FullName),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
             // إضافة الـ Roles كـ Claims
@@ -447,7 +493,7 @@ namespace AuthApi.Services
             return Convert.ToHexString(bytes).ToLower();
         }
 
-       
+
 
     }
 }

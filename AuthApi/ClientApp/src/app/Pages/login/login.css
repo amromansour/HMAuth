@@ -50,3 +50,12 @@ body {
     font-size: 3.5rem;
   }
 }
+button:disabled {
+  background-color: #ccc;
+}
+
+.error {
+  color: red;
+  text-align: center;
+  margin-top: 10px;
+}

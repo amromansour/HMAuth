@@ -18,6 +18,23 @@ namespace AuthApi
         {
             var builder = WebApplication.CreateBuilder(args);
 
+
+            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                    policy =>
+                    {
+                        policy
+                            .WithOrigins("https://localhost:4200") // 👈 ده رابط الـ Angular
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    });
+            });
+
+
             // JWT Settings
             builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -114,9 +131,9 @@ namespace AuthApi
 
             // 🟢 خدمة Angular في production
             app.UseDefaultFiles();    // يدور على index.html تلقائي
-            app.UseStaticFiles();   
+            app.UseStaticFiles();
 
-
+            app.UseCors("_myAllowSpecificOrigins");
             // Map API Controllers
             app.MapControllers();
             app.UseRouting();

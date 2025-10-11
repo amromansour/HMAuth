@@ -1,1 +1,38 @@
-<p>registration works!</p>
+<main class="form-signin">
+    <form formGroup="form" (ngSubmit)="onSubmit()">
+
+        <img class="mb-4" src="/assets/user_6543046.png" alt="" width="72">
+        <h1 class="h3 mb-3 fw-normal">Sign Up</h1>
+
+        <div class="form-floating">
+            <input type="text" class="form-control" id="txtName" placeholder="Name ...">
+            <label for="txtName">Name</label>
+        </div>
+        <div class="form-floating">
+            <input type="email" class="form-control" id="txtEmail" placeholder="name@example.com">
+            <label for="txtEmail">Email address</label>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="txtPassword" placeholder="*********">
+            <label for="txtPassword">Password</label>
+            <div *ngIf="f.password.touched && f.password.invalid">
+                <small *ngIf="f.password.errors?.required">Password مطلوب</small>
+                <small *ngIf="f.password.errors?.minlength">الحد الأدنى 6 أحرف</small>
+            </div>
+        </div>
+        <div class="form-floating">
+            <input type="password" class="form-control" id="txtconfirmPassword" placeholder="*********">
+            <label for="txtconfirmPassword">Confirm Password</label>
+            <div *ngIf="(f.confirmPassword.touched || form.touched) && form.errors?.passwordsMismatch">
+                <small>كلمة المرور غير متطابقة</small>
+            </div>
+            <div *ngIf="f.confirmPassword.touched && f.confirmPassword.errors?.required">
+                <small>Confirm Password مطلوب</small>
+            </div>
+        </div>
+
+
+        <button class="w-100 btn btn-lg btn-primary" type="submit">Sign Up</button>
+        <p class="mt-5 mb-3 text-muted">&copy; 2017–2021</p>
+    </form>
+</main>

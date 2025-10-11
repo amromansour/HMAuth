@@ -2,6 +2,7 @@
 using AuthApi.Services.Contracts;
 using AuthApi.Services.Dto;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AuthApi.Controllers
 {
@@ -11,6 +12,13 @@ namespace AuthApi.Controllers
     public class UsersController : ControllerBase
     {
         protected IUserService _UserServices;
+        public string UserId
+        {
+            get
+            {
+                return User.FindFirstValue(ClaimTypes.NameIdentifier);
+            }
+        }
 
         public UsersController(IUserService userServices)
         {
@@ -33,6 +41,34 @@ namespace AuthApi.Controllers
             {
                 return Ok(new ApiResponse() { _ResponseCode = RegUserResponse._ResponseCode, Message = RegUserResponse.Message });
             }
+        }
+
+
+        [HttpGet("GetAll")]
+        public async Task<IActionResult> GetAll([FromQuery] int PageIndex = 1, [FromQuery] int PageSize = 10)
+        {
+            var users = await _UserServices.GetAllUsers(PageIndex,PageSize);
+            ApiResponse response = new ApiResponse() { 
+            
+                _ResponseCode = users._ResponseCode,
+                Message = users.Message,
+                Data = users.Data,
+                AdditionalData = users.AdditionalData
+            };
+            return Ok(response);   
+        }
+        public async Task<IActionResult> GetUser()
+        {
+            var user = await _UserServices.GetUserData(UserId);
+            ApiResponse response = new ApiResponse()
+            {
+
+                _ResponseCode = user._ResponseCode,
+                Message = user.Message,
+                Data = user.Data,
+                AdditionalData = user.AdditionalData
+            };
+            return Ok(response);
         }
     }
 }

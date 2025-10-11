@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\browser\" />
+    <Folder Include="wwwroot\Uploads\" />
   </ItemGroup>
 
 </Project>

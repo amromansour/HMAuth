@@ -1,0 +1,30 @@
+<div class="container mt-4">
+    <h2>User List</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Username</th>
+                <th>Roles</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let user of Users">
+                <td>{{ user.id }}</td>
+                <td>{{ user.fullName }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.userName }}</td>
+                <td>{{ user.roles.join(', ') }}</td>
+                <td>
+                    <button class="btn btn-primary btn-sm me-2">Edit</button>
+                    <button class="btn btn-danger btn-sm me-2">Delete</button>
+                    <button class="btn btn-warning btn-sm">Toggle User Role </button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
